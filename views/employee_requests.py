@@ -1,55 +1,32 @@
 import sqlite3
 import json
-from models import Employee
+from models import Employee, Location
 
-EMPLOYEES = [
-    {
-        "id": 1,
-        "name": "Will Smith",
-        "address": "666 Slap Drive"
-    },
-    {
-        "id": 2,
-        "name": "Chris Rock",
-        "address": "42069 Street Drive"
-    }
-]
 
-# def get_all_employees():
-#     "Shows employees"
-#     return EMPLOYEES
+def create_employee(new_employee):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-# def get_single_employee(id):
-#     "gets employee"
-#     #variable to hold the found employee
-#     requested_employees = None
+        db_cursor.execute("""
+        INSERT INTO Employee
+            ( address, name, location_id )
+        VALUES
+            ( ?, ?, ?);
+        """, (new_employee['address'], new_employee['name'],
+              new_employee['location_id'], ))
 
-#     # Iterate the EMPLOYEES list above. Very similar to the
-#     # for..of loops you used in JavaScript.
-#     for employees in EMPLOYEES:
-#         # Dictionaries in Python use [] notation to find a key
-#         # instead of the dot notation that JavaScript used.
-#         if employees["id"] == id:
-#             requested_employees = employees
+        # The `lastrowid` property on the cursor will return
+        # the primary key of the last thing that got added to
+        # the database.
+        id = db_cursor.lastrowid
 
-#     return requested_employees
+        # Add the `id` property to the employee dictionary that
+        # was sent by the client so that the client sees the
+        # primary key in the response.
+        new_employee['id'] = id
 
-def create_employee(employee):
-    "creates a new employee dictionary"
-    # Get the id value of the last employee in the list
-    max_id = EMPLOYEES[-1]["id"]
 
-    # Add 1 to whatever that number is
-    new_id = max_id + 1
-
-    # Add an `id` property to the employee dictionary
-    employee["id"] = new_id
-
-    # Add the employee dictionary to the list
-    EMPLOYEES.append(employee)
-
-    # Return the dictionary with `id` property added
-    return employee
+    return json.dumps(new_employee)
 
 def delete_employee(id):
     "deletes an employee"
@@ -89,8 +66,13 @@ def get_all_employees():
         SELECT
             e.id,
             e.name,
-            e.address
+            e.address,
+            e.location_id,
+            l.name location_name,
+            l.address location_address
         FROM employee e
+        JOIN Location l
+            ON l.id = e.location_id
         """)
 
         # Initialize an empty list to hold all employee representations
@@ -106,7 +88,13 @@ def get_all_employees():
             # Note that the database fields are specified in
             # exact order of the parameters defined in the
             # Employee class above.
-            employee = Employee(row['id'], row['name'], row['address'])
+            employee = Employee(row['id'], row['address'], row['name'], row['location_id'])
+
+            # Create a Location instance from the current row
+            location = Location(row['id'], row['location_name'], row['location_address'])
+            
+            # Add the dictionary representation of the customer to the animal
+            employee.location = location.__dict__
 
             employees.append(employee.__dict__)
 

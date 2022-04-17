@@ -2,54 +2,29 @@ import sqlite3
 import json
 from models import Location
 
-LOCATIONS = [
-    {
-        "id": 1,
-        "name": "Nashville North",
-        "address": "8422 Johnson Pike"
-    },
-    {
-        "id": 2,
-        "name": "Nashville South",
-        "address": "209 Emory Drive"
-    }
-]
 
-# def get_all_locations():
-#     "Shows locations"
-#     return LOCATIONS
+def create_location(new_location):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-# def get_single_location(id):
-#     "gets locations"
-#     #variable to hold the found location
-#     requested_location = None
+        db_cursor.execute("""
+        INSERT INTO Location
+            ( address, name )
+        VALUES
+            ( ?, ?);
+        """, (new_location['address'], new_location['name'], ))
 
-#     # Iterate the LOCATIONS list above. Very similar to the
-#     # for..of loops you used in JavaScript.
-#     for location in LOCATIONS:
-#         # Dictionaries in Python use [] notation to find a key
-#         # instead of the dot notation that JavaScript used.
-#         if location["id"] == id:
-#             requested_location = location
+        # The `lastrowid` property on the cursor will return
+        # the primary key of the last thing that got added to
+        # the database.
+        id = db_cursor.lastrowid
 
-#     return requested_location
+        # Add the `id` property to the location dictionary that
+        # was sent by the client so that the client sees the
+        # primary key in the response.
+        new_location['id'] = id
 
-def create_location(location):
-    "creates a new location dictionary"
-    # Get the id value of the last location in the list
-    max_id = LOCATIONS[-1]["id"]
-
-    # Add 1 to whatever that number is
-    new_id = max_id + 1
-
-    # Add an `id` property to the location dictionary
-    location["id"] = new_id
-
-    # Add the location dictionary to the list
-    LOCATIONS.append(location)
-
-    # Return the dictionary with `id` property added
-    return location
+    return json.dumps(new_location)
 
 def delete_location(id):
     "deletes a location"

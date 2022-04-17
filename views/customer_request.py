@@ -2,54 +2,30 @@ import sqlite3
 import json
 from models import Customer
 
-CUSTOMERS = [
-    {
-        "id": 1,
-        "name": "Millie",
-        "address": "123 Iamadog Street"
-    },
-    {
-        "id": 2,
-        "name": "Thomas",
-        "address": "345 Iamalsoadog Street"
-    }
-]
+def create_customer(new_customer):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-# def get_all_customers():
-#     "Shows customers"
-#     return CUSTOMERS
+        db_cursor.execute("""
+        INSERT INTO Customer
+            ( name, address, email, password )
+        VALUES
+            ( ?, ?, ?, ?);
+        """, (new_customer['name'], new_customer['address'],
+              new_customer['email'], new_customer['password']))
 
-# def get_single_customer(id):
-#     "gets customer"
-#     #variable to hold the found customer
-#     requested_customer = None
+        # The `lastrowid` property on the cursor will return
+        # the primary key of the last thing that got added to
+        # the database.
+        id = db_cursor.lastrowid
 
-#     # Iterate the CUSTOMERS list above. Very similar to the
-#     # for..of loops you used in JavaScript.
-#     for customer in CUSTOMERS:
-#         # Dictionaries in Python use [] notation to find a key
-#         # instead of the dot notation that JavaScript used.
-#         if customer["id"] == id:
-#             requested_customer = customer
+        # Add the `id` property to the customer dictionary that
+        # was sent by the client so that the client sees the
+        # primary key in the response.
+        new_customer['id'] = id
 
-#     return requested_customer
 
-def create_customer(customer):
-    "creates a new customer dictionary"
-    # Get the id value of the last customer in the list
-    max_id = CUSTOMERS[-1]["id"]
-
-    # Add 1 to whatever that number is
-    new_id = max_id + 1
-
-    # Add an `id` property to the location dictionary
-    customer["id"] = new_id
-
-    # Add the customer dictionary to the list
-    CUSTOMERS.append(customer)
-
-    # Return the dictionary with `id` property added
-    return customer
+    return json.dumps(new_customer)
 
 def delete_customer(id):
     "deletes a customer"
@@ -89,7 +65,9 @@ def get_all_customers():
         SELECT
             c.id,
             c.name,
-            c.address
+            c.address,
+            c.email,
+            c.password
         FROM customer c
         """)
 
@@ -106,7 +84,7 @@ def get_all_customers():
             # Note that the database fields are specified in
             # exact order of the parameters defined in the
             # Customer class above.
-            customer = Customer(row['id'], row['name'], row['address'])
+            customer = Customer(row['id'], row['name'], row['address'], row['email'], row['password'])
 
             customers.append(customer.__dict__)
 
